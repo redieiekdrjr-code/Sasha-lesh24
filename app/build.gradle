@@ -1,0 +1,13 @@
+plugins { id 'com.android.application' }
+
+android {
+    namespace 'com.sashacraft.game'
+    compileSdk 35
+    defaultConfig {
+        applicationId 'com.sashacraft.game'
+        minSdk 23
+        targetSdk 35
+        versionCode 2360
+        versionName '23.60'
+    }
+}
