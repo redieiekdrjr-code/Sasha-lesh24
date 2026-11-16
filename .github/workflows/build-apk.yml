@@ -6,9 +6,6 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    env:
-      ANDROID_HOME: /usr/local/lib/android/sdk
-      ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -18,15 +15,24 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
-      - name: Configure Android SDK
+      - name: Locate Android SDK tools
+        shell: bash
         run: |
-          echo "$ANDROID_HOME/cmdline-tools/16.0/bin" >> "$GITHUB_PATH"
-          echo "$ANDROID_HOME/platform-tools" >> "$GITHUB_PATH"
-          test -x "$ANDROID_HOME/cmdline-tools/16.0/bin/sdkmanager"
-      - name: Accept Android SDK licenses and install packages
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
+          ls -la "$ANDROID_HOME" || true
+          SDKMANAGER="$(find "$ANDROID_HOME" /usr/local/lib/android -type f -name sdkmanager -perm -u+x 2>/dev/null | head -n 1)"
+          if [ -z "$SDKMANAGER" ]; then
+            echo "sdkmanager was not found in the runner Android SDK"
+            find /usr/local/lib/android -maxdepth 5 -type d 2>/dev/null | head -n 100
+            exit 1
+          fi
+          echo "SDKMANAGER=$SDKMANAGER" >> "$GITHUB_ENV"
+          echo "$(dirname "$SDKMANAGER")" >> "$GITHUB_PATH"
+      - name: Accept licenses and install Android packages
         run: |
-          yes | "$ANDROID_HOME/cmdline-tools/16.0/bin/sdkmanager" --licenses
-          "$ANDROID_HOME/cmdline-tools/16.0/bin/sdkmanager" --install "platforms;android-35" "build-tools;35.0.0" "platform-tools"
+          yes | "$SDKMANAGER" --licenses
+          "$SDKMANAGER" --install "platforms;android-35" "build-tools;35.0.0" "platform-tools"
       - name: Build APK
         run: gradle assembleDebug
       - uses: actions/upload-artifact@v4
